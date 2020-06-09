@@ -663,6 +663,63 @@ describe("Transform", () => {
       ]).slice(2, 12))
       ist(tr.steps.length, 0, ">")
     })
+
+    it("Doesn't fail when pasting a half-open slice with a title and a code block into an empty title", () => {
+      let s = new Schema({
+        nodes: schema.spec.nodes.append({
+          title: {content: "text*"},
+          doc: {content: "title? block*"}
+       })
+      })
+      let tr = new Transform(s.node("doc", null, [s.node("title", null, [])]))
+      let slice = s.node("doc", null, [
+        s.node("title", null, s.text("title")),
+        s.node("code_block", null, s.text("two")),
+      ]).slice(0)
+      slice.openStart = 1
+      tr.replace(1, 1, slice)
+      ist(tr.steps.length, 0, ">")
+    })
+
+    it("Doesn't fail when pasting a half-open slice with a heading and a code block into an empty title", () => {
+      let s = new Schema({
+       nodes: schema.spec.nodes.append({
+          title: {content: "text*"},
+          doc: {content: "title? block*"}
+       })
+      })
+      let tr = new Transform(s.node("doc", null, [s.node("title")]))
+      let slice = s.node("doc", null, [
+        s.node("heading", {level: 1}, [s.text("heading")]),
+        s.node("code_block", null, [s.text("code")]),
+      ]).slice(0)
+      slice.openStart = 1
+      tr.replace(1, 1, slice)
+      console.log("Doc", tr.doc.toString())
+      ist(tr.steps.length, 0, ">")
+    })
+
+    it("Pasting a heading into an empty paragraph preserves node types", () => {
+      let s = new Schema({
+       nodes: schema.spec.nodes.append({
+          title: {content: "text*"},
+          doc: {content: "title? block*"}
+       })
+      })
+      let tr = new Transform(s.node("doc", null, [
+        s.node("title", null, [s.text("title")]),
+        s.node("paragraph", null, [])
+      ]))
+      let slice = s.node("doc", null, [
+        s.node("heading", {level: 1}, [s.text("some heading")]),
+      ]).slice(0)
+      slice.openStart = 1
+      slice.openEnd = 1
+      tr.replace(8, 8, slice)
+      ist(tr.steps.length, 0, ">")
+      ist(tr.doc.child(1).textContent, "some heading")
+      ist(tr.doc.child(1).type.name, "heading")
+    })
   })
 
   describe("replaceRange", () => {
